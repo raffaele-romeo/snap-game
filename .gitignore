@@ -1,0 +1,15 @@
+project/boot
+project/target
+target
+.idea
+.idea/*
+.idea_modules
+.DS_Store
+null
+.bloop/
+.metals/
+.vscode/
+project/.bloop/
+project/metals.sbt
+project/project/
+.bsp/
