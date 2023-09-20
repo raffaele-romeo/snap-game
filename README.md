@@ -14,7 +14,5 @@
 
 ## Assumptions
 
-* A minimum of one deck is necessary for gameplay. 
-* The game is exclusively for two players. 
-* When playing with just one deck, if the user's answer is "both" for matching cards option, the game automatically defaults to matching cards based on their values. 
+* A minimum of one deck is necessary for gameplay.
 * The stop condition occurs when the deck is completely exhausted.

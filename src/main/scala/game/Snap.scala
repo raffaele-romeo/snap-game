@@ -6,58 +6,71 @@ import scala.util.Random
 
 class Snap(gameContext: GameContext) {
   private val deck: Deck =
-    (1 to gameContext.numberOfDecks).map(_ => Deck.generate).reduce(_ + _)
+    (1 to gameContext.numberOfDecks)
+      .map(_ => Deck.generate)
+      .reduce(_ + _)
+      .shuffle
 
-  private val numberOfTurns: Int = deck.cards.size / gameContext.numberOfPlayers
-
-  private val splitDeck = deck.cards.grouped(numberOfTurns).toArray
-
-  private val players: List[Player] =
+  private val playersWithoutDeck: List[Player] =
     (0 until gameContext.numberOfPlayers)
-      .map(id => Player(id, splitDeck(id)))
+      .map(id => Player(id))
       .toList
 
-  def run(): Player = {
-    val output = (0 until numberOfTurns).foldLeft(players) {
+  private val playersWithDeck = dealCardToPlayers(deck, playersWithoutDeck)
+
+  def run(): List[Player] =
+    deck.cards.indices.foldLeft(playersWithDeck) {
       case (players, turnNumber) =>
         updatePlayersInfo(
           turnNumber,
           players,
-          fastestPlayerIdToCallSnap = Random.shuffle(players.map(_.id)).head
+          fastestPlayerIdToCallSnap = Random.between(0, 2)
         )
     }
 
-    getWinner(output)
-  }
+  def getWinner(players: List[Player]): Player =
+    players.maxBy(_.totalScore)
+
+  private def dealCardToPlayers(deck: Deck,
+                                players: List[Player]): List[Player] =
+    deck.cards.zipWithIndex
+      .foldLeft(players.toArray) {
+        case (players, (card, index)) =>
+          val playerId = getPlayerId(index)
+          val player = players(playerId)
+
+          players.update(playerId, player.addCardToDeck(card))
+          players
+      }
+      .toList
 
   private[game] def updatePlayersInfo(
     turnNumber: Int,
     players: List[Player],
     fastestPlayerIdToCallSnap: Int
   ): List[Player] = {
-    val currentPlayerId = getCurrentPlayerId(turnNumber)
-    val otherPlayerId = getOtherPlayerId(currentPlayerId)
+    val currentPlayerId = getPlayerId(turnNumber)
+    val previousPlayerId = getPlayerId(turnNumber - 1)
+
+    val otherPlayers = players.filterNot(
+      player => Set(currentPlayerId, previousPlayerId)(player.id)
+    )
 
     val currentPlayer = getPlayerById(currentPlayerId, players).play
-    val otherPlayer = getPlayerById(otherPlayerId, players).play
+    val previousPlayer = getPlayerById(previousPlayerId, players)
 
-    val playersLastCard: List[Card] =
-      List(currentPlayer.lastCard, otherPlayer.lastCard).flatten
+    val currentPlayersPlaying = List(previousPlayer, currentPlayer)
+    val updatedPlayers = currentPlayersPlaying ++ otherPlayers
 
-    val updatedPlayers = List(currentPlayer, otherPlayer)
-
-    val output = if (isSnap(playersLastCard)) {
-      val slowestPlayerIdToCallSnap = getOtherPlayerId(
-        fastestPlayerIdToCallSnap
-      )
+    val output = if (isSnap(currentPlayersPlaying.flatMap(_.lastCard))) {
       val slowestPlayerToCallSnap =
-        getPlayerById(slowestPlayerIdToCallSnap, updatedPlayers)
+        getOtherPlayer(fastestPlayerIdToCallSnap, currentPlayersPlaying)
 
       List(
-        getPlayerById(fastestPlayerIdToCallSnap, updatedPlayers)
+        getPlayerById(fastestPlayerIdToCallSnap, currentPlayersPlaying)
           .addStack(slowestPlayerToCallSnap.stack),
-        getPlayerById(slowestPlayerIdToCallSnap, updatedPlayers).emptyStack()
-      )
+        slowestPlayerToCallSnap.emptyStack()
+      ) ++ otherPlayers
     } else {
       updatedPlayers
     }
@@ -65,11 +78,8 @@ class Snap(gameContext: GameContext) {
     output.sortBy(_.id)
   }
 
-  private def getWinner(players: List[Player]): Player =
-    players.maxBy(_.totalScore)
-
-  private def getCurrentPlayerId(id: Int): Int =
-    id % gameContext.numberOfPlayers
+  private def getPlayerId(id: Int): Int =
+    Math.floorMod(id, gameContext.numberOfPlayers)
 
   private def getPlayerById(id: Int, players: List[Player]): Player =
     players(id)
@@ -84,5 +94,6 @@ class Snap(gameContext: GameContext) {
     }
   }
 
-  private def getOtherPlayerId(id: Int): Int = if (id == 0) 1 else 0
+  private def getOtherPlayer(id: Int, players: List[Player]): Player =
+    if (id == 0) players.last else players.head
 }

@@ -1,13 +1,8 @@
 package domain
 
-final case class GameContext private (numberOfPlayers: Int = 2,
-                                      numberOfDecks: Int,
-                                      matchCardsOn: MatchCardOpt)
-
-object GameContext {
-  def make(numberOfDecks: Int, matchCardsOn: MatchCardOpt): GameContext =
-    GameContext(matchCardsOn = matchCardsOn, numberOfDecks = numberOfDecks)
-}
+final case class GameContext(numberOfPlayers: Int,
+                             matchCardsOn: MatchCardOpt,
+                             numberOfDecks: Int)
 
 sealed trait MatchCardOpt
 

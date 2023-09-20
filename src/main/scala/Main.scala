@@ -1,49 +1,82 @@
 import domain.{GameContext, MatchCardOpt}
 import game.Snap
 
+import scala.annotation.tailrec
 import scala.io.StdIn.readLine
 import scala.util.Try
 
 object Main {
   def main(args: Array[String]): Unit = {
-    println("Enter number of card decks. At least 1 deck is required ")
-    val numberOfDecksStr = readLine()
-    val numberOfDecks = validNumberOfDecks(numberOfDecksStr)
+    var continuePlaying = true
 
-    val possibleMatchingOpt: List[MatchCardOpt] =
-      if (numberOfDecks == 1) List(MatchCardOpt.Suit, MatchCardOpt.Value)
-      else
-        MatchCardOpt.values
+    while (continuePlaying) {
+      val numberOfDecks = readUserInput(
+        message = "Enter number of card decks. At least 1 deck is required ",
+        validateNumberOfDecks
+      )
 
-    println(
-      s"How card should be matched? Possible values are: ${possibleMatchingOpt.map(_.toString).mkString(", ")} "
-    )
-    val matchCardOptStr = readLine()
+      val possibleMatchingOpt: List[MatchCardOpt] =
+        if (numberOfDecks == 1) List(MatchCardOpt.Suit, MatchCardOpt.Value)
+        else
+          MatchCardOpt.values
 
-    val gameContext = GameContext.make(
-      numberOfDecks,
-      validMatchCardOpt(numberOfDecks, matchCardOptStr)
-    )
+      val matchCardOpt = readUserInput(
+        message = s"How cards should be matched? " +
+          s"Possible values are: ${possibleMatchingOpt.map(_.toString).mkString(", ")} ",
+        validateMatchCardOpt(numberOfDecks)
+      )
 
-    val snap = new Snap(gameContext)
-    val winner = snap.run()
+      val numberOfPlayers = readUserInput(
+        message = "Enter number of players. At least 2 players required ",
+        validateNumberOfPlayers
+      )
 
-    println(
-      s"The winner player is player ${winner.id} and total score ${winner.totalScore}"
-    )
+      val gameContext =
+        GameContext(numberOfPlayers, matchCardOpt, numberOfDecks)
+
+      val snap = new Snap(gameContext)
+
+      val players = snap.run()
+      val winner = snap.getWinner(players)
+
+      println(
+        s"The winner player is player ${winner.id} and total score ${winner.totalScore}"
+      )
+
+      println("Do you want to play again? Answer yes/no ")
+      continuePlaying = readLine() match {
+        case "yes" => true
+        case _     => false
+      }
+    }
   }
 
-  private def validMatchCardOpt(decks: Int,
-                                matchCardOpt: String): MatchCardOpt =
+  private def validateNumberOfPlayers(numberOfPlayers: String): Option[Int] =
+    Try(numberOfPlayers.toInt).toOption.filter(_ >= 2)
+
+  private def validateMatchCardOpt(
+    decks: Int
+  )(matchCardOpt: String): Option[MatchCardOpt] =
     matchCardOpt.toLowerCase match {
-      case "suit"              => MatchCardOpt.Suit
-      case "both" if decks > 1 => MatchCardOpt.Both
-      case _                   => MatchCardOpt.Value
+      case "suit"              => Some(MatchCardOpt.Suit)
+      case "value"             => Some(MatchCardOpt.Value)
+      case "both" if decks > 1 => Some(MatchCardOpt.Both)
+      case _                   => None
     }
 
-  private def validNumberOfDecks(decks: String): Int =
+  private def validateNumberOfDecks(decks: String): Option[Int] =
     Try(decks.toInt).toOption match {
-      case Some(value) if value >= 1 => value
-      case _                         => 1
+      case Some(value) if value >= 1 => Some(value)
+      case _                         => None
     }
+
+  @tailrec
+  def readUserInput[A](message: String, validator: String => Option[A]): A = {
+    println(message)
+
+    validator(readLine()) match {
+      case Some(value) => value
+      case None        => readUserInput(message, validator)
+    }
+  }
 }

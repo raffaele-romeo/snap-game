@@ -2,23 +2,26 @@ package domain
 
 import scala.util.Random
 
-final case class Deck(cards: List[Card]) {
+final case class Deck private (cards: List[Card]) {
   def +(other: Deck): Deck = {
     Deck(this.cards ++ other.cards)
   }
+
+  def shuffle: Deck = copy(cards = Random.shuffle(cards))
 }
 
 object Deck {
   def generate: Deck = {
     val cards = Suit.values.flatMap { suit =>
-      (1 to 13).map(value => Card(suit, value))
+      ((2 to 10).map(_.toString).toList ++ List("J", "Q", "K", "A"))
+        .map(value => Card(suit, value))
     }
 
     Deck(Random.shuffle(cards))
   }
 }
 
-final case class Card(suit: Suit, value: Int) {
+final case class Card(suit: Suit, value: String) {
   override def toString = s"$value${suit.toString}"
 }
 
