@@ -15,4 +15,4 @@
 ## Assumptions
 
 * A minimum of one deck is necessary for gameplay.
-* The stop condition occurs when the deck is completely exhausted.
+* The stop condition occurs when one player holds all the cards.

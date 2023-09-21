@@ -40,7 +40,7 @@ object Main {
       val winner = snap.getWinner(players)
 
       println(
-        s"The winner player is player ${winner.id} and total score ${winner.totalScore}"
+        s"The winner player is ${winner.name} and total score ${winner.totalScore}"
       )
 
       println("Do you want to play again? Answer yes/no ")
